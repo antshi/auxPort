@@ -1,0 +1,16 @@
+Package: auxPort
+Type: Package
+Title: Auxiliary functions for portfolio optimization
+Version: 0.1.0
+Author: Antoniya Shivarova
+Maintainer: Antoniya Shivarova <an.shivarova@gmail.com>
+Description: The package auxPort provides various auxiliarly functions for the area of portfolio optimization. 
+    It includes some typical data cleaning procedures, portfolio optimization functions (both theoretical and 
+    with quadratic programming and linear constraints), as well as functions for various performance measures and
+    the respective statistical inference.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports: Rdpack, ROI, ROI.plugin.qpoases, MASS, timeDate
+RdMacros: Rdpack
+RoxygenNote: 7.1.0
