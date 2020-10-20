@@ -14,7 +14,6 @@
 #'
 #' @export mu_estim_sample
 #'
-
 mu_estim_sample <- function(data) {
   data <- as.matrix(data)
   mu <- as.numeric(colMeans(data, na.rm = TRUE))
@@ -56,19 +55,18 @@ mu_estim_fm <- function(data, rf, factors) {
   mu <- c()
 
   for (i in 1:ncol(rets_ex)) {
-    fflm_data <- cbind(rets_ex[, i], factors)
-    colnames(fflm_data) <- c("ExRet", colnames(factors))
-    form_lm <-
-      paste('ExRet ~', paste(colnames(factors), collapse = '+'))
-    model_lm <- stats::lm(form_lm, data = fflm_data)
-    betas <- model_lm$coefficients[-1]
+    fflm_data <- as.matrix(cbind(rets_ex[, i], factors))
+    model_lm <-
+      stats::lm(fflm_data[, 1] ~ fflm_data[, -1]) # estimate alpha and betas
+    betas <-
+      model_lm$coefficients[-1] # consider only betas, according to CAPM or/and FF models
     mu[i] <- as.numeric(betas %*% colMeans(factors))
   }
 
   return(mu)
 }
 
-#' Wrapper Function for Expected Returns Estimation
+#' Wrapper Function for Expected Returns Estimation I
 #'
 #' Estimates the expected returns of a dataset
 #' according to the user-defined function.
@@ -88,5 +86,32 @@ mu_estim_fm <- function(data, rf, factors) {
 #'
 mu_estim_wrapper <- function(data, estim_func, ...) {
   mu <- estim_func(data, ...)
+  return(mu)
+}
+
+#' Wrapper Function for Expected Returns Estimation II
+#'
+#' Estimates the expected returns of a dataset
+#' according to the user-defined function.
+#'
+#' @param data an nxp data matrix.
+#' @param est_type a character string, defining the estimation method.
+#' @param ... additional parameters, parsed to estim_func.
+#' @return a vector of expected returns
+#'
+#' @examples
+#' data(sp500_rets)
+#' sp_rets <- sp500_rets[,-1]
+#' sigma_ml <- mu_estim(sp_rets, est_type="SAMPLE")
+#'
+#'
+#' @export mu_estim
+#'
+mu_estim <- function(data, est_type = "SAMPLE", ...) {
+  if (est_type == "SAMPLE") {
+    mu <- mu_estim_sample(data)
+  } else if (est_type == "FM") {
+    mu <- mu_estim_fm(data, ...)
+  }
   return(mu)
 }

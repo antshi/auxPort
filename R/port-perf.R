@@ -1,6 +1,6 @@
 #' Turnover
 #'
-#' Calculates the average turnover rate of a portfolio strategy
+#' Calculates the average turnover rate of a portfolio strategy.
 #'
 #' @param weights a numerical nxp data matrix with portfolio weights.
 #' @param rets_oos a numerical nxp data matrix with stock returns over the same observation period as the weights.
@@ -11,11 +11,11 @@
 #' set.seed(1234)
 #' naive_port <- matrix(runif(200, 0, 1), 20, 10)
 #' returns_oos <- matrix(rnorm(200, 0, 0.1), 20, 10)
-#' turnover <- turnoverCalc(naive_port, returns_oos)
+#' turnover <- turnover_calc(naive_port, returns_oos)
 #'
-#' @export turnoverCalc
+#' @export turnover_calc
 #'
-turnoverCalc <- function(weights, rets_oos) {
+turnover_calc <- function(weights, rets_oos) {
   TT <- dim(rets_oos)[1]
   n <- dim(rets_oos)[2]
   ones <- rep.int(1, n)
@@ -24,10 +24,48 @@ turnoverCalc <- function(weights, rets_oos) {
     weights * (1 + rets_oos) / ((1 + port_rets) %*% t(ones))
 
   turnover <-
-    rowSums(abs(weights[-1,] - weights_br[-nrow(weights_br),]))
+    rowSums(abs(weights[-1, ] - weights_br[-nrow(weights_br), ]))
   turnover_aver <- sum(turnover) / (TT - 1)
 
   return(turnover_aver)
+}
+
+#' Gross Leverage
+#'
+#' Calculates the gross leverage rate of a portfolio strategy.
+#'
+#' @param weights a numerical nxp data matrix with portfolio weights.
+#'
+#' @return a double, the gross leverage over the specified observation period.
+#'
+#' @examples
+#' set.seed(1234)
+#' naive_port <- matrix(runif(200, 0, 1), 20, 10)
+#' turnover <- grosslev_calc(naive_port)
+#'
+#' @export grosslev_calc
+#'
+grosslev_calc <- function(weights) {
+  return(mean(apply(abs(weights), 1, sum), na.rm = TRUE))
+}
+
+#' Proportional Leverage
+#'
+#' Calculates the proportional leverage (% short sales) of a portfolio strategy.
+#'
+#' @param weights a numerical nxp data matrix with portfolio weights.
+#'
+#' @return a double, the proportional leverage over the specified observation period.
+#'
+#' @examples
+#' set.seed(1234)
+#' naive_port <- matrix(runif(200, 0, 1), 20, 10)
+#' turnover <- proplev_calc(naive_port)
+#'
+#' @export proplev_calc
+#'
+proplev_calc <- function(weights) {
+  return(mean(apply(weights < 0, 1, sum), na.rm = TRUE))
 }
 
 #' Sharpe Ratio
@@ -43,16 +81,38 @@ turnoverCalc <- function(weights, rets_oos) {
 #'
 #' @examples
 #' data(sp500_rets)
-#' srs <- apply(sp500_rets[,-1], 2, srCalc)
+#' srs <- apply(sp500_rets[,-1], 2, sr_calc)
 #'
 #'
-#' @export srCalc
+#' @export sr_calc
 #'
-srCalc <- function(rets,
-                   rf = 0,
-                   ann_factor = 1) {
+sr_calc <- function(rets,
+                    rf = 0,
+                    ann_factor = 1) {
   return((ann_factor * (mean(rets, na.rm = TRUE) - rf)) / (sqrt(ann_factor) * stats::sd(rets, na.rm =
-                                                                                   TRUE)))
+                                                                                          TRUE)))
+}
+
+#' Standard Deviation
+#'
+#' Calculates the Standard deviation of returns time series.
+#'
+#' @param rets a numerical vector with returns time series.
+#' @param ann_factor a double, the annualization factor. If ann_factor=1 (default), no annualization is performed.
+#' For monthly returns, set ann_factor=12. For daily returns, set ann_factor=252, etc.
+#'
+#' @return an index vector of the position of NAs.
+#'
+#' @examples
+#' data(sp500_rets)
+#' sds <- apply(sp500_rets[,-1], 2, sd_calc)
+#'
+#'
+#' @export sd_calc
+#'
+sd_calc <- function(rets,
+                    ann_factor = 1) {
+  return(sqrt(ann_factor) * stats::sd(rets, na.rm = TRUE))
 }
 
 #' Portfolio Variance
@@ -68,12 +128,11 @@ srCalc <- function(rets,
 #' Sigma <- var(sp500_rets[,-1])
 #' p <- dim(Sigma)[2]
 #' weights <- rep(1/p, p)
-#' portvar <- portVarCalc(Sigma, weights)
-#' @export portVarCalc
+#' portvar <- portvar_calc(Sigma, weights)
+#' @export portvar_calc
 #'
-portVarCalc <- function(Sigma, weights){
-
-  portVar <- t(weights)%*%Sigma%*%weights
+portvar_calc <- function(Sigma, weights) {
+  portVar <- t(weights) %*% Sigma %*% weights
 
   return(as.numeric(portVar))
 }
@@ -92,12 +151,11 @@ portVarCalc <- function(Sigma, weights){
 #' mu <- colMeans(sp500_rets[,-1])
 #' p <- length(mu)
 #' weights <- rep(1/p, p)
-#' portmu <- portMuCalc(mu, weights)
-#' @export portMuCalc
+#' portmu <- portmu_calc(mu, weights)
+#' @export portmu_calc
 #'
-portMuCalc <- function(mu, weights){
-
-  portMu <-  t(weights)%*%mu
+portmu_calc <- function(mu, weights) {
+  portMu <-  t(weights) %*% mu
 
   return(as.numeric(portMu))
 }
@@ -106,25 +164,25 @@ portMuCalc <- function(mu, weights){
 #'
 #' Performs a nonparametric bootstrap on returns time series and predefined performance measure.
 #'
-#' @param retmat an nxp data matrix with returns.
+#' @param rets an nxp data matrix with returns.
 #' @param B an integer, the number of bootstrap repetitions.
 #' @param sample_size an integer, the sample size for the nonparametric bootstrap.
-#' @param type a function, the performance measure to be calculated.
+#' @param type a function, the performance measure to be calculated. Default is sr_calc.
 #'
 #' @return a Bxp data matrix with the bootstrapped values of the performance measure from type.
 #'
 #' @examples
 #' data(sp500_rets)
-#' srs_boot <- nonparamBoot(sp500_rets[,2:11], B=1000, sample_size=100, type=srCalc)
+#' srs_boot <- boot_nonparam(sp500_rets[,2:11], B=1000, sample_size=100, type=sr_calc)
 #'
 #'
-#' @export nonparamBoot
+#' @export boot_nonparam
 #'
-nonparamBoot <- function(retmat, B, sample_size, type = srCalc) {
-  perfmat <- matrix(NA, B, ncol(retmat))
+boot_nonparam <- function(rets, B, sample_size, type = sr_calc) {
+  perfmat <- matrix(NA, B, ncol(rets))
   for (i in 1:B) {
-    ret_ind <- sample(1:nrow(retmat), sample_size, replace = FALSE)
-    perfmat[i,] <- apply(retmat[ret_ind,], 2, type)
+    ret_ind <- sample(1:nrow(rets), sample_size, replace = TRUE)
+    perfmat[i, ] <- apply(rets[ret_ind, ], 2, type)
   }
 
   return(perfmat)
@@ -132,37 +190,37 @@ nonparamBoot <- function(retmat, B, sample_size, type = srCalc) {
 
 #' Parametric Bootstrap
 #'
-#' Performs a parametric bootstrap on returns time series (with an assumed normal distribution) and predefined performance measure.
+#' Performs a parametric bootstrap on returns time series (with an assumed normal distribution)
+#' and predefined performance measure.
 #'
-#' @param retmat an nxp data matrix with returns.
+#' @param rets an nxp data matrix with returns.
 #' @param B an integer, the number of bootstrap repetitions.
 #' @param sample_size an integer, the sample size for the parametric bootstrap.
-#' @param type a function, the performance measure to be calculated.
+#' @param type a function, the performance measure to be calculated. Default is sr_calc.
 #'
 #' @return a Bxp data matrix with the bootstrapped values of the performance measure from type.
 #'
 #' @examples
 #' data(sp500_rets)
-#' srs_boot <- paramBoot(sp500_rets[,2:11], B=1000, sample_size=100, type=srCalc)
+#' srs_boot <- boot_param(sp500_rets[,2:11], B=1000, sample_size=100, type=sr_calc)
 #'
+#' @export boot_param
 #'
-#' @export paramBoot
-#'
-paramBoot <- function(retmat, B, sample_size, type = srCalc) {
-  perfmat <- matrix(NA, B, ncol(retmat))
+boot_param <- function(rets, B, sample_size, type = sr_calc) {
+  perfmat <- matrix(NA, B, ncol(rets))
 
   for (b in 1:B) {
-    RmB <- apply(retmat, 2, function(x) {
+    RmB <- apply(rets, 2, function(x) {
       mu <- mean(x)
       sigma <- stats::sd(x)
       stats::rnorm(sample_size, mean = mu, sd = sigma)
     })
-    perfmat[b,] <- apply(RmB, 2, type)
+    perfmat[b, ] <- apply(RmB, 2, type)
   }
   return(perfmat)
 }
 
-#' HAC Test for Variance/Sharpe ratio
+#' HAC Test for Variance and Sharpe ratio
 #'
 #' Performs a HAC test for differences in the variances or Sharpe ratios of return time series
 #'
@@ -180,12 +238,12 @@ paramBoot <- function(retmat, B, sample_size, type = srCalc) {
 #' }
 #' @examples
 #' data(sp500_rets)
-#' hac_results_var <- hacInfer(sp500_rets[,c(2,3)])
-#' hac_results_srs <- hacInfer(sp500_rets[,c(2,3)], type="SR")
+#' hac_results_var <- hac_infer(sp500_rets[,c(2,3)])
+#' hac_results_srs <- hac_infer(sp500_rets[,c(2,3)], type="SR")
 #'
-#' @export hacInfer
+#' @export hac_infer
 #'
-hacInfer <- function(rets, digits = 3, type = "Var") {
+hac_infer <- function(rets, digits = 3, type = "Var") {
   if (type == "Var") {
     result <- hac.inference.log.var(rets, digits)
   } else if (type == "SR") {
@@ -276,7 +334,7 @@ compute.se.Parzen.pw <- function(ret) {
   reg4 = V.hat[1:T - 1, 4]
   for (j in (1:4)) {
     fit = stats::lm(V.hat[2:T, j] ~ -1 + reg1 + reg2 + reg3 + reg4)
-    A.ls[j,] = as.numeric(fit$coef)
+    A.ls[j, ] = as.numeric(fit$coef)
     V.star[, j] = as.numeric(fit$resid)
   }
   svd.A = svd(A.ls)
@@ -292,7 +350,7 @@ compute.se.Parzen.pw <- function(ret) {
   D = solve(diag(4) - A.hat)
   reg.mat = rbind(reg1, reg2, reg3, reg4)
   for (j in (1:4)) {
-    V.star[, j] = V.hat[2:T, j] - A.hat[j,] %*% reg.mat
+    V.star[, j] = V.hat[2:T, j] - A.hat[j, ] %*% reg.mat
   }
   Psi.hat = compute.Psi.hat(V.star)
   Psi.hat = D %*% Psi.hat %*% t(D)
@@ -352,8 +410,8 @@ compute.Gamma.hat <- function(V.hat, j) {
   if (j >= T)
     stop("j must be smaller than the row dimension!")
   for (i in ((j + 1):T))
-    Gamma.hat = Gamma.hat + V.hat[i,] %*%
-    t(V.hat[i - j,])
+    Gamma.hat = Gamma.hat + V.hat[i, ] %*%
+    t(V.hat[i - j, ])
   Gamma.hat = Gamma.hat / T
   Gamma.hat
 }
@@ -432,7 +490,7 @@ block.size.calibrate <-
     resid.mat = cbind(as.numeric(fit1$resid), as.numeric(fit2$resid))
     for (k in (1:K)) {
       resid.mat.star = rbind(c(0, 0), resid.mat[sb.sequence(T -
-                                                              1, b.av, T.start + T - 1),])
+                                                              1, b.av, T.start + T - 1), ])
       for (t in (2:(T.start + T))) {
         Var.data[t, 1] = coef1[1] + coef1[2] * Var.data[t -
                                                           1, 1] + coef1[3] * Var.data[t - 1, 2] + resid.mat.star[t,
@@ -441,7 +499,7 @@ block.size.calibrate <-
                                                           1, 1] + coef2[3] * Var.data[t - 1, 2] + resid.mat.star[t,
                                                                                                                  2]
       }
-      Var.data.trunc = Var.data[(T.start + 1):(T.start + T),]
+      Var.data.trunc = Var.data[(T.start + 1):(T.start + T), ]
       for (j in (1:b.len)) {
         p.Value = boot.time.inference(Var.data.trunc, b.vec[j],
                                       M, Delta.hat)$p.Value
@@ -471,7 +529,7 @@ boot.time.inference <-
     d = abs(Delta.hat - Delta.null) / compute.se.Parzen.pw(ret)
     p.value = 1
     for (m in (1:M)) {
-      ret.star = ret[cbb.sequence(T, b),]
+      ret.star = ret[cbb.sequence(T, b), ]
       Delta.hat.star = sharpe.ratio.diff(ret.star)
       ret1.star = ret.star[, 1]
       ret2.star = ret.star[, 2]
@@ -499,7 +557,7 @@ boot.time.inference <-
       Psi.hat.star = matrix(0, 4, 4)
       for (j in (1:l)) {
         zeta.star = b ^ 0.5 * colMeans(y.star[((j - 1) * b + 1):(j *
-                                                                   b),])
+                                                                   b), ])
         Psi.hat.star = Psi.hat.star + zeta.star %*% t(zeta.star)
       }
       Psi.hat.star = Psi.hat.star / l
@@ -588,7 +646,7 @@ compute.se.Parzen.pw.log.var <- function (ret) {
   reg4 = V.hat[1:T - 1, 4]
   for (j in (1:4)) {
     fit = stats::lm(V.hat[2:T, j] ~ -1 + reg1 + reg2 + reg3 + reg4)
-    A.ls[j,] = as.numeric(fit$coef)
+    A.ls[j, ] = as.numeric(fit$coef)
     V.star[, j] = as.numeric(fit$resid)
   }
   svd.A = svd(A.ls)
@@ -604,7 +662,7 @@ compute.se.Parzen.pw.log.var <- function (ret) {
   D = solve(diag(4) - A.hat)
   reg.mat = rbind(reg1, reg2, reg3, reg4)
   for (j in (1:4)) {
-    V.star[, j] = V.hat[2:T, j] - A.hat[j,] %*% reg.mat
+    V.star[, j] = V.hat[2:T, j] - A.hat[j, ] %*% reg.mat
   }
   Psi.hat = compute.Psi.hat(V.star)
   Psi.hat = D %*% Psi.hat %*% t(D)
@@ -665,8 +723,8 @@ compute.Gamma.hat <- function (V.hat, j) {
   if (j >= T)
     stop("j must be smaller than the row dimension!")
   for (i in ((j + 1):T))
-    Gamma.hat = Gamma.hat + V.hat[i,] %*%
-    t(V.hat[i - j,])
+    Gamma.hat = Gamma.hat + V.hat[i, ] %*%
+    t(V.hat[i - j, ])
   Gamma.hat = Gamma.hat / T
   Gamma.hat
 }
@@ -730,7 +788,7 @@ block.size.calibrate.log.var <-
     ret2 = ret[, 2]
     T = length(ret1)
     Var.data = matrix(0, T.start + T, 2)
-    Var.data[1,] = ret[1,]
+    Var.data[1, ] = ret[1, ]
     Delta.hat = log.var.diff(ret)
     fit1 = stats::lm(ret1[2:T] ~ ret1[1:(T - 1)] + ret2[1:(T - 1)])
     fit2 = stats::lm(ret2[2:T] ~ ret1[1:(T - 1)] + ret2[1:(T - 1)])
@@ -739,7 +797,7 @@ block.size.calibrate.log.var <-
     resid.mat = cbind(as.numeric(fit1$resid), as.numeric(fit2$resid))
     for (k in (1:K)) {
       resid.mat.star = rbind(c(0, 0), resid.mat[sb.sequence(T -
-                                                              1, b.av, T.start + T - 1),])
+                                                              1, b.av, T.start + T - 1), ])
       for (t in (2:(T.start + T))) {
         Var.data[t, 1] = coef1[1] + coef1[2] * Var.data[t -
                                                           1, 1] + coef1[3] * Var.data[t - 1, 2] + resid.mat.star[t,
@@ -748,7 +806,7 @@ block.size.calibrate.log.var <-
                                                           1, 1] + coef2[3] * Var.data[t - 1, 2] + resid.mat.star[t,
                                                                                                                  2]
       }
-      Var.data.trunc = Var.data[(T.start + 1):(T.start + T),]
+      Var.data.trunc = Var.data[(T.start + 1):(T.start + T), ]
       for (j in (1:b.len)) {
         p.Value = boot.time.inference.log.var(Var.data.trunc,
                                               b.vec[j], M, Delta.hat)$p.Value
@@ -778,7 +836,7 @@ boot.time.inference.log.var <-
     d = abs(Delta.hat - Delta.null) / compute.se.Parzen.pw.log.var(ret)
     p.value = 1
     for (m in (1:M)) {
-      ret.star = ret[cbb.sequence(T, b),]
+      ret.star = ret[cbb.sequence(T, b), ]
       Delta.hat.star = log.var.diff(ret.star)
       ret1.star = ret.star[, 1]
       ret2.star = ret.star[, 2]
@@ -804,7 +862,7 @@ boot.time.inference.log.var <-
       Psi.hat.star = matrix(0, 4, 4)
       for (j in (1:l)) {
         zeta.star = b ^ 0.5 * colMeans(y.star[((j - 1) * b + 1):(j *
-                                                                   b),])
+                                                                   b), ])
         Psi.hat.star = Psi.hat.star + zeta.star %*% t(zeta.star)
       }
       Psi.hat.star = Psi.hat.star / l

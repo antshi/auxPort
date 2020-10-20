@@ -10,11 +10,11 @@
 #'
 #' @examples
 #' data(sp500)
-#' index_nas <- findNAs(sp500, all=FALSE)
+#' index_nas <- find_nas(sp500, all=FALSE)
 #'
-#' @export findNAs
+#' @export find_nas
 #'
-findNAs <- function(data, all = TRUE) {
+find_nas <- function(data, all = TRUE) {
   if (is.null(dim(data))) {
     indx <- which(is.na(data))
   } else{
@@ -40,16 +40,49 @@ findNAs <- function(data, all = TRUE) {
 #' @examples
 #' data(sp500)
 #' dates <- as.Date(sp500[,1], format="%d.%m.%Y", stringsAsFactors=FALSE)
-#' index_weekends <- findWeekends(dates)
+#' index_weekends <- find_weekends(dates)
 #'
-#' @export findWeekends
+#' @export find_weekends
 #'
-findWeekends <- function(dates) {
+find_weekends <- function(dates) {
   Sys.setlocale("LC_TIME", "en_US.UTF-8")
   indx <-
     which(weekdays(dates) == "Saturday" |
             weekdays(dates) == "Sunday")
   return(indx)
+}
+
+
+#' Find Business Days
+#'
+#' Finds the first or last business days in a month and returns the respective date vector.
+#'
+#' @param dates a date vector.
+#' @param type a character vector. type="first" (default) delivers the first business day in a month and
+#' type="last" the last business day in a month.
+#'
+#' @return a date vector with the respective first or last business days for each month in dates.
+#'
+#' @examples
+#' data(sp500)
+#' dates <- as.Date(sp500[,1], format="%d.%m.%Y", stringsAsFactors=FALSE)
+#' firstdays <- find_bd(dates)
+#' lastdays <- find_bd(dates, type="last")
+#'
+#' @export find_bd
+#'
+find_bd <- function(dates, type = "first") {
+  day <- format(dates, format = "%d")
+  monthYr <- format(dates, format = "%Y-%m")
+  if (type == "first") {
+    y <- tapply(day, monthYr, min)
+  } else if (type == "last") {
+    y <- tapply(day, monthYr, max)
+  } else{
+    print("Not recognized type. Enter either first or last.")
+  }
+  businessDay <- as.Date(paste(row.names(y), y, sep = "-"))
+  return(businessDay)
 }
 
 
@@ -67,15 +100,16 @@ findWeekends <- function(dates) {
 #' sp500[,1] <- as.Date(sp500[,1],format="%d.%m.%Y",stringsAsFactors=FALSE)
 #' sp500 <- sp500[,-which(substr(colnames(sp500),1,7)=="X.ERROR")]
 #' NYSE_hol <- as.Date(timeDate::holidayNYSE(as.numeric(unique(format(sp500[,1],format="%Y")))))
-#' no_trades <- sort(c(NYSE_hol, as.Date(c("2001-09-11","2001-09-12","2001-09-13","2001-09-14"), format="%Y-%m-%d")))
+#' no_trades <- sort(c(NYSE_hol, as.Date(c("2001-09-11","2001-09-12",
+#' "2001-09-13","2001-09-14"), format="%Y-%m-%d")))
 #' sp500 <- sp500[-match(no_trades,sp500[,1]),]
 #' nonas <- which(apply(is.na(sp500[,-1]),2,sum)==0)
 #' sp500 <- sp500[,c(1, nonas+1)]
-#' repindex <- findRepVal(sp500[,-1])
+#' repindex <- find_repval(sp500[,-1])
 #'
-#' @export findRepVal
+#' @export find_repval
 #'
-findRepVal <- function(data, maxrep = 5) {
+find_repval <- function(data, maxrep = 5) {
   max_rep_number <- c()
   for (j in 1:ncol(data)) {
     values <- data[which(!is.na(data[, j])), j]
@@ -84,49 +118,15 @@ findRepVal <- function(data, maxrep = 5) {
     for (i in 2:length(values)) {
       diff_values <- values[i] - values[i - 1]
       if (diff_values == 0) {
-        max_rep_number[j]  <- max(max_rep_number[j], counter)
         counter <- counter + 1
+        max_rep_number[j]  <- max(max_rep_number[j], counter)
       } else{
-        max_rep_number[j]  <- max_rep_number[j]
         counter <- 0
       }
     }
   }
-  repval_indx <- which(max_rep_number >= maxrep)
+  repval_indx <- which(max_rep_number >= (maxrep-1))
   return(repval_indx)
-}
-
-
-#' Find Business Days
-#'
-#' Finds the first or last business days in a month and returns the respective date vector.
-#'
-#' @param dates a date vector.
-#' @param type a character vector. type="first" (default) delivers the first business day in a month and
-#' type="last" the last business day in a month.
-#'
-#' @return a date vector with the respective first or last business days for each month in dates.
-#'
-#' @examples
-#' data(sp500)
-#' dates <- as.Date(sp500[,1], format="%d.%m.%Y", stringsAsFactors=FALSE)
-#' firstdays <- findBusinessDay(dates)
-#' lastdays <- findBusinessDay(dates, type="last")
-#'
-#' @export findBusinessDay
-#'
-findBusinessDay <- function(dates, type = "first") {
-  day <- format(dates, format = "%d")
-  monthYr <- format(dates, format = "%Y-%m")
-  if (type == "first") {
-    y <- tapply(day, monthYr, min)
-  } else if (type == "last") {
-    y <- tapply(day, monthYr, max)
-  } else{
-    print("Not recognized type. Enter either first or last.")
-  }
-  businessDay <- as.Date(paste(row.names(y), y, sep = "-"))
-  return(businessDay)
 }
 
 #' Returns Calculation
@@ -149,13 +149,13 @@ findBusinessDay <- function(dates, type = "first") {
 #' sp500 <- sp500[-match(no_trades,sp500[,1]),]
 #' nonas <- which(apply(is.na(sp500[,-1]),2,sum)==0)
 #' sp500 <- sp500[,c(1, nonas+1)]
-#' repindex <- findRepVal(sp500[,-1])
+#' repindex <- find_repval(sp500[,-1])
 #' sp500_prices <- sp500[,-c(1, repindex+1)]
-#' sp500_ret <- retsCalc(sp500_prices)
+#' sp500_ret <- rets_calc(sp500_prices)
 #'
-#' @export retsCalc
+#' @export rets_calc
 #'
-retsCalc <- function(prices, type = "d") {
+rets_calc <- function(prices, type = "d") {
   if (type == "d") {
     if (is.null(dim(prices))) {
       ret <- diff(prices) / prices[1:(length(prices) - 1)]
