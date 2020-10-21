@@ -444,35 +444,6 @@ port_estim_solver <-
         CVXR::Problem(obj_func, constraints = list(constr_gross, constr_sum))
       result <- CVXR::solve(problem_form)
       weights <- result$getValue(w_var)
-
-      #       .minvar <- function(w) {
-      #         return(as.numeric(w %*% Sigma %*% w))
-      #       }
-      #       .gradminvar <- function(w) {
-      #         return(2 * Sigma %*% w)
-      #       }
-      #       .grossConstraint <- function(w) {
-      #         return(gross_c - sum(abs(w)))
-      #       }
-      #       .eqConstraint <- function(w) {
-      #         return(sum(w) - 1)
-      #       }
-      #
-      #       w_init <- rep(1 / n, n)
-      #
-      #       weights <- nloptr::slsqp(
-      #         x0 = w_init,
-      #         fn = .minvar,
-      #         gr = .gradminvar,
-      #         hin = .grossConstraint,
-      #         heq = .eqConstraint,
-      #         nl.info = FALSE,
-      #         control = list(
-      #           xtol_rel = 1e-12,
-      #           check_derivatives = FALSE,
-      #           maxeval = 2000
-      #         )
-      #       )$par
       return(as.numeric(weights))
     }
   }
