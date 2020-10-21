@@ -63,11 +63,18 @@ find_nas(prices, all=TRUE)
 ``` r
 returns <- sp500_rets[,-1]
 Sigma <- cov(returns)
+image(Sigma)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+``` r
 naive <- port_estim_naive(Sigma)
 gmv <- port_estim_gmv(Sigma)
 gmv_lasso <- port_estim_solver(Sigma, lambda1=0.0001)
+
 matplot(cbind(naive, gmv, gmv_lasso), type="l", col=c("black", "green", "darkgreen"), lty=1, lwd=1, ylab="Weights")
 legend("topleft", legend=c("Naive", "GMV", "GMV-lasso"), col=c("black", "green", "darkgreen"), lty=1, lwd=1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
